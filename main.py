@@ -7,7 +7,12 @@ pygame.display.set_caption("First Game")
 
 FPS = 60
 SPEED= 5
-BORDER = pygame.Rect(WIDTH/2 - 5, 0, 10, HEIGHT)
+BULLET_SPEED = 7
+MAX_BULLETS = 3
+BORDER = pygame.Rect(WIDTH//2 - 5, 0, 10, HEIGHT)
+
+BLUE_HIT = pygame.USEREVENT + 1
+RED_HIT = pygame.USEREVENT + 2
 
 GREYBLUESPACESHIPIMAGE = pygame.image.load(
     os.path.join('Assets', 'bluegreyspaceship.png'))
@@ -18,11 +23,17 @@ GREYREDSPACESHIPIMAGE = pygame.image.load(
 GREYREDSPACESHIP = pygame.transform.rotate(pygame.transform.scale(GREYREDSPACESHIPIMAGE, (40, 30)), 270)
 
 
-def draw_window(blue, red):
+def draw_window(blue, red, red_bullets, blue_bullets):
     WIN.fill((255, 255, 255))
     pygame.draw.rect(WIN, (0, 0, 0), BORDER)
     WIN.blit(GREYBLUESPACESHIP, (blue.x, blue.y))
     WIN.blit(GREYREDSPACESHIP, (red.x,  red.y))
+
+    for bullet in red_bullets:
+        pygame.draw.rect(WIN, (255, 0, 0), bullet)
+
+    for bullet in blue_bullets:
+        pygame.draw.rect(WIN, (0, 0, 255), bullet)
     pygame.display.update()
 
 def blue_handle_movement(keys_pressed, blue):
@@ -51,9 +62,27 @@ def red_handle_movement(keys_pressed, red):
     if keys_pressed[pygame.K_DOWN] and red.y + SPEED + red.height < HEIGHT + - 10: #Down
         red.y += SPEED
 
+def handle_bullets(blue_bullets, red_bullets, blue, red):
+    for bullet in blue_bullets:
+        bullet.x += BULLET_SPEED
+        
+        if red.colliderect(bullet):
+            pygame.event.post(pygame.event.Event(RED_HIT))
+            blue_bullets.remove(bullet)
+
+    for bullet in red_bullets:
+        bullet.x -= BULLET_SPEED
+        
+        if blue.colliderect(bullet):
+            pygame.event.post(pygame.event.Event(BLUE_HIT))
+            red_bullets.remove(bullet)
+
+
 def main():
     blue = pygame.Rect(100, 300, 40, 40)
     red = pygame.Rect(700, 300, 40, 30)
+    blue_bullets = []
+    red_bullets = []
 
     clock = pygame.time.Clock()
     run = True
@@ -62,12 +91,26 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LCTRL and len(blue_bullets) < MAX_BULLETS:
+                    bullet = pygame.Rect(
+                        blue.x + blue.width, blue.y + blue.height//2 - 2, 10, 5)
+                    blue_bullets.append(bullet)
+
+                if event.key == pygame.K_RCTRL and len(red_bullets) < MAX_BULLETS:
+                    bullet = pygame.Rect(
+                        red.x, red.y + red.height//2 - 2, 10, 5)
+                    red_bullets.append(bullet)
+        
         
         keys_pressed = pygame.key.get_pressed()
         blue_handle_movement(keys_pressed, blue)
         red_handle_movement(keys_pressed, red)
 
-        draw_window(blue, red)
+        handle_bullets(blue_bullets, red_bullets, blue, red)
+
+        draw_window(blue, red, red_bullets, blue_bullets)
 
     pygame.quit()
 

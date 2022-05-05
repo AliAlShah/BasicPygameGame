@@ -1,6 +1,7 @@
 import pygame 
 import os
 pygame.font.init()
+pygame.mixer.init()
 
 WIDTH, HEIGHT = 900, 500
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -13,7 +14,13 @@ MAX_BULLETS = 3
 
 HEALTH_FONT = pygame.font.SysFont('comicsans', 40)
 WINNER_FONT = pygame.font.SysFont('comicsans', 100)
+
 BORDER = pygame.Rect(WIDTH//2 - 5, 0, 10, HEIGHT)
+
+BULLET_HIT_SOUND = pygame.mixer.Sound(
+    os.path.join("Assets", "laserhit.mp3"))
+BULLET_FIRE_SOUND = pygame.mixer.Sound(
+    os.path.join("Assets", "lasershoot.mp3"))
 
 BLUE_HIT = pygame.USEREVENT + 1
 RED_HIT = pygame.USEREVENT + 2
@@ -117,23 +124,28 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+                pygame.quit()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LCTRL and len(blue_bullets) < MAX_BULLETS:
                     bullet = pygame.Rect(
                         blue.x + blue.width, blue.y + blue.height//2 - 2, 10, 5)
                     blue_bullets.append(bullet)
+                    BULLET_FIRE_SOUND.play()
 
                 if event.key == pygame.K_RCTRL and len(red_bullets) < MAX_BULLETS:
                     bullet = pygame.Rect(
                         red.x, red.y + red.height//2 - 2, 10, 5)
                     red_bullets.append(bullet)
+                    BULLET_FIRE_SOUND.play()
             
             if event.type == RED_HIT:
                 red_health -= 1
+                BULLET_HIT_SOUND.play()
 
             if event.type == BLUE_HIT:
                 blue_health -= 1
+                BULLET_HIT_SOUND.play()
         
         winner_text = ""
         if red_health <= 0:
@@ -155,7 +167,7 @@ def main():
 
         draw_window(blue, red, red_bullets, blue_bullets, red_health, blue_health)
 
-    pygame.quit()
+    main()
 
 if __name__ == "__main__":
     main()

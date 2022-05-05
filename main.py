@@ -1,5 +1,6 @@
 import pygame 
 import os
+pygame.font.init()
 
 WIDTH, HEIGHT = 900, 500
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -9,10 +10,16 @@ FPS = 60
 SPEED= 5
 BULLET_SPEED = 7
 MAX_BULLETS = 3
+
+HEALTH_FONT = pygame.font.SysFont('comicsans', 40)
+WINNER_FONT = pygame.font.SysFont('comicsans', 100)
 BORDER = pygame.Rect(WIDTH//2 - 5, 0, 10, HEIGHT)
 
 BLUE_HIT = pygame.USEREVENT + 1
 RED_HIT = pygame.USEREVENT + 2
+
+BACKGROUND = pygame.transform.scale(pygame.image.load(
+    os.path.join("Assets", "background.png")), (WIDTH, HEIGHT))
 
 GREYBLUESPACESHIPIMAGE = pygame.image.load(
     os.path.join('Assets', 'bluegreyspaceship.png'))
@@ -23,9 +30,15 @@ GREYREDSPACESHIPIMAGE = pygame.image.load(
 GREYREDSPACESHIP = pygame.transform.rotate(pygame.transform.scale(GREYREDSPACESHIPIMAGE, (40, 30)), 270)
 
 
-def draw_window(blue, red, red_bullets, blue_bullets):
-    WIN.fill((255, 255, 255))
+def draw_window(blue, red, red_bullets, blue_bullets, red_health, blue_health):
+    WIN.blit(BACKGROUND, (0, 0))
     pygame.draw.rect(WIN, (0, 0, 0), BORDER)
+
+    red_health_text = HEALTH_FONT.render("Health: " + str(red_health), 1, (255, 255, 255))
+    blue_health_text = HEALTH_FONT.render("Health: " + str(blue_health), 1, (255, 255, 255))
+    WIN.blit(red_health_text, (WIDTH - red_health_text.get_width() - 10, 10))
+    WIN.blit(blue_health_text, (10, 10))
+
     WIN.blit(GREYBLUESPACESHIP, (blue.x, blue.y))
     WIN.blit(GREYREDSPACESHIP, (red.x,  red.y))
 
@@ -69,6 +82,9 @@ def handle_bullets(blue_bullets, red_bullets, blue, red):
         if red.colliderect(bullet):
             pygame.event.post(pygame.event.Event(RED_HIT))
             blue_bullets.remove(bullet)
+        
+        elif bullet.x > WIDTH:
+            blue_bullets.remove(bullet)
 
     for bullet in red_bullets:
         bullet.x -= BULLET_SPEED
@@ -76,6 +92,14 @@ def handle_bullets(blue_bullets, red_bullets, blue, red):
         if blue.colliderect(bullet):
             pygame.event.post(pygame.event.Event(BLUE_HIT))
             red_bullets.remove(bullet)
+        elif bullet.x < 0:
+            red_bullets.remove(bullet)
+
+def draw_winner(text):
+    draw_text = WINNER_FONT.render(text, 1, (255, 255, 255))
+    WIN.blit(draw_text, (WIDTH/2 - draw_text.get_width()/2, HEIGHT/2 - draw_text.get_height()/2))
+    pygame.display.update()
+    pygame.time.delay(5000)
 
 
 def main():
@@ -83,6 +107,8 @@ def main():
     red = pygame.Rect(700, 300, 40, 30)
     blue_bullets = []
     red_bullets = []
+    red_health = 10
+    blue_health = 10
 
     clock = pygame.time.Clock()
     run = True
@@ -102,6 +128,23 @@ def main():
                     bullet = pygame.Rect(
                         red.x, red.y + red.height//2 - 2, 10, 5)
                     red_bullets.append(bullet)
+            
+            if event.type == RED_HIT:
+                red_health -= 1
+
+            if event.type == BLUE_HIT:
+                blue_health -= 1
+        
+        winner_text = ""
+        if red_health <= 0:
+            winner_text = "Blue Wins!"
+
+        if blue_health <= 0:
+            winner_text = "Red Wins!"
+
+        if winner_text != "":
+            draw_winner(winner_text)
+            break
         
         
         keys_pressed = pygame.key.get_pressed()
@@ -110,7 +153,7 @@ def main():
 
         handle_bullets(blue_bullets, red_bullets, blue, red)
 
-        draw_window(blue, red, red_bullets, blue_bullets)
+        draw_window(blue, red, red_bullets, blue_bullets, red_health, blue_health)
 
     pygame.quit()
 
